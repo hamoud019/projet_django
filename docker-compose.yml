@@ -1,0 +1,86 @@
+services:
+  db:
+    image: postgres:16
+    container_name: postgres_mru
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+
+  mongo:
+    image: mongo:latest
+    container_name: mongo_mru
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_USER:-admin}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_PASSWORD:-admin}
+    volumes:
+      - mongodata:/data/db
+    ports:
+      - "27017:27017"
+
+  web:
+    build: .
+    container_name: django_mru
+    env_file:
+      - .env
+    volumes:
+      - .:/app_hamoud
+    ports:
+      - "8000:8000"
+    depends_on:
+      - db
+      - mongo
+    environment:
+      - MONGO_URL=mongodb://${MONGO_USER:-admin}:${MONGO_PASSWORD:-admin}@mongo:27017
+    command: >
+      sh -c "
+      echo 'Waiting for PostgreSQL...';
+      until nc -z db 5432; do
+        sleep 1;
+      done;
+      echo 'PostgreSQL is up!';
+      echo 'Waiting for MongoDB...';
+      until nc -z mongo 27017; do
+        sleep 1;
+      done;
+      echo 'MongoDB is up!';
+      python manage.py migrate &&
+      python manage.py runserver 0.0.0.0:8000
+      "
+
+  scraper:
+    build: .
+    container_name: scraper_mru
+    env_file:
+      - .env
+    volumes:
+      - .:/app_hamoud
+    depends_on:
+      - db
+      - mongo
+    environment:
+      - MONGO_URL=mongodb://${MONGO_USER:-admin}:${MONGO_PASSWORD:-admin}@mongo:27017
+    command: >
+      sh -c "
+      echo 'Waiting for PostgreSQL...';
+      until nc -z db 5432; do
+        sleep 1;
+      done;
+      echo 'PostgreSQL is up!';
+      sleep 3;
+      while true; do
+        echo '🚀 Exécution du scraper à '$(date);
+        python manage.py scrape_prices --sync;
+        echo '✅ Scraper terminé. Prochaine exécution dans 24h';
+        sleep 86400;
+      done
+      "
+
+
+volumes:
+  pgdata:
+  mongodata:

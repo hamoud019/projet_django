@@ -1,0 +1,529 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Prédictions - Suivi des Actifs</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background-color: white;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            padding: 30px;
+        }
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 2px solid #667eea;
+        }
+        h1 {
+            color: #333;
+            font-size: 2em;
+        }
+        .back-link {
+            color: #667eea;
+            text-decoration: none;
+            font-weight: 600;
+        }
+        .filters {
+            background-color: #f5f5f5;
+            padding: 25px;
+            border-radius: 8px;
+            margin-bottom: 30px;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 15px;
+        }
+        .filter-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: #333;
+            font-weight: 600;
+        }
+        .filter-group select {
+            width: 100%;
+            padding: 10px 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 1em;
+        }
+        .filter-group button {
+            grid-column: 1 / -1;
+            padding: 12px 30px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 1em;
+        }
+        .filter-group button:hover {
+            transform: translateY(-2px);
+        }
+        .prediction-box {
+            background-color: #f5f5f5;
+            padding: 25px;
+            border-radius: 8px;
+            margin-bottom: 30px;
+        }
+        .prediction-box h2 {
+            color: #667eea;
+            margin-bottom: 20px;
+        }
+        .prediction-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+        .stat-item {
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            text-align: center;
+        }
+        .stat-item label {
+            color: #666;
+            font-size: 0.9em;
+            display: block;
+            margin-bottom: 8px;
+        }
+        .stat-item value {
+            color: #333;
+            font-size: 1.5em;
+            font-weight: bold;
+            display: block;
+        }
+        .indicators-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+        .indicator-card {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+            border-left: 4px solid #667eea;
+        }
+        .indicator-card label {
+            color: #666;
+            font-size: 0.85em;
+            display: block;
+            margin-bottom: 8px;
+        }
+        .indicator-card value {
+            display: block;
+            font-size: 1.3em;
+            font-weight: bold;
+            color: #333;
+        }
+        .rsi-meter {
+            margin-top: 8px;
+            height: 6px;
+            background: linear-gradient(to right, #d32f2f, #fff, #388e3c);
+            border-radius: 3px;
+            position: relative;
+        }
+        .rsi-pointer {
+            position: absolute;
+            top: -5px;
+            width: 2px;
+            height: 16px;
+            background: #000;
+        }
+        .signal-badge {
+            display: inline-block;
+            padding: 8px 12px;
+            border-radius: 20px;
+            font-weight: 600;
+            font-size: 0.9em;
+            margin-top: 10px;
+        }
+        .signal-info {
+            background-color: #e3f2fd;
+            color: #1976d2;
+            border: 1px solid #1976d2;
+        }
+        .signal-success {
+            background-color: #e8f5e9;
+            color: #388e3c;
+            border: 1px solid #388e3c;
+        }
+        .signal-warning {
+            background-color: #fff3e0;
+            color: #f57c00;
+            border: 1px solid #f57c00;
+        }
+        .confidence-bar {
+            width: 100%;
+            height: 8px;
+            background: #eee;
+            border-radius: 4px;
+            overflow: hidden;
+            margin-top: 8px;
+        }
+        .confidence-fill {
+            height: 100%;
+            background: linear-gradient(to right, #ff6b6b, #ffd93d, #6bcf7f);
+            transition: width 0.3s;
+        }
+        .methods-comparison {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            font-size: 0.9em;
+        }
+        .methods-comparison tr {
+            border-bottom: 1px solid #eee;
+        }
+        .methods-comparison td {
+            padding: 8px;
+        }
+        .methods-comparison .method-name {
+            font-weight: 600;
+            color: #667eea;
+        }
+        .bb-box {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        .bb-box .bb-value {
+            display: flex;
+            justify-content: space-between;
+            margin: 8px 0;
+            font-size: 0.95em;
+        }
+        .bb-box .bb-label {
+            font-weight: 600;
+            color: #666;
+            min-width: 100px;
+        }
+        .trend-badge {
+            display: inline-block;
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-weight: 600;
+            margin-top: 10px;
+        }
+        .trend-badge.haussier {
+            background-color: #d4edda;
+            color: #155724;
+        }
+        .trend-badge.baissier {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+        .trend-badge.neutre {
+            background-color: #e7e7e7;
+            color: #333;
+        }
+        .chart-container {
+            position: relative;
+            height: 400px;
+            margin-bottom: 30px;
+        }
+        .predictions-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        .predictions-table thead {
+            background-color: #667eea;
+            color: white;
+        }
+        .predictions-table th {
+            padding: 12px;
+            text-align: left;
+            font-weight: 600;
+        }
+        .predictions-table td {
+            padding: 12px;
+            border-bottom: 1px solid #eee;
+        }
+        .predictions-table tbody tr:hover {
+            background-color: #f9f9f9;
+        }
+        .error {
+            background-color: #f8d7da;
+            color: #721c24;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🔮 Prédictions de Prix</h1>
+            <a href="/" class="back-link">← Retour à l'accueil</a>
+        </header>
+
+        <div class="filters">
+            <div class="filter-group">
+                <label for="asset">Sélectionner un actif:</label>
+                <select id="asset" name="asset" onchange="updatePrediction()">
+                    <option value="">-- Choisir un actif --</option>
+                    {% for asset in assets %}
+                    <option value="{{ asset.code }}" {% if selected_asset == asset.code %}selected{% endif %}>
+                        {{ asset.code }} - {{ asset.label }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="filter-group">
+                <label for="days">Horizon de prédiction:</label>
+                <select id="days" name="days" onchange="updatePrediction()">
+                    <option value="7" {% if days_ahead == 7 %}selected{% endif %}>7 jours</option>
+                    <option value="30" {% if days_ahead == 30 %}selected{% endif %}>30 jours</option>
+                </select>
+            </div>
+        </div>
+
+        {% if prediction and not prediction.error %}
+        <div class="prediction-box">
+            <h2>{{ prediction.asset_label }}</h2>
+            
+            <div class="prediction-stats">
+                <div class="stat-item">
+                    <label>Prix actuel</label>
+                    <value>{{ prediction.current_price|floatformat:2 }} MRU</value>
+                </div>
+                <div class="stat-item">
+                    <label>Prix moyen (120j)</label>
+                    <value>{{ prediction.average|floatformat:2 }} MRU</value>
+                </div>
+                <div class="stat-item">
+                    <label>Volatilité</label>
+                    <value>{{ prediction.volatility|floatformat:2 }} MRU</value>
+                    <small>({{ prediction.volatility_percent }}%)</small>
+                </div>
+                <div class="stat-item">
+                    <label>Tendance</label>
+                    <span class="trend-badge {{ prediction.trend }}">
+                        {% if prediction.trend == 'haussier' %}📈 HAUSSIER{% elif prediction.trend == 'baissier' %}📉 BAISSIER{% else %}➡️ NEUTRE{% endif %}
+                    </span>
+                </div>
+            </div>
+
+            <!-- Indicateurs Techniques -->
+            <div class="indicators-grid">
+                <div class="indicator-card">
+                    <label>RSI (14)</label>
+                    <value>{{ prediction.rsi }}</value>
+                    <div class="rsi-meter">
+                        <div class="rsi-pointer" style="left: {{ prediction.rsi }}%"></div>
+                    </div>
+                    <small style="color: #999;">0 — 50 — 100</small>
+                </div>
+                
+                <div class="indicator-card">
+                    <label>Confiance</label>
+                    <value style="font-size: 1.1em;">{{ prediction.confidence }}</value>
+                    <div class="confidence-bar">
+                        <div class="confidence-fill" style="width: {{ prediction.rsi }}%"></div>
+                    </div>
+                    <small>{{ prediction.model_quality }}</small>
+                </div>
+                
+                <div class="indicator-card">
+                    <label>Plage (120j)</label>
+                    <value style="font-size: 1em;">
+                        {{ prediction.min_price|floatformat:2 }} — {{ prediction.max_price|floatformat:2 }}
+                    </value>
+                </div>
+            </div>
+
+            <!-- Signal de Trading -->
+            <div style="margin-bottom: 20px;">
+                <span class="signal-badge signal-{{ prediction.signal_type }}">
+                    {{ prediction.signal }}
+                </span>
+            </div>
+
+            <!-- Bandes de Bollinger -->
+            <div class="bb-box">
+                <h3 style="color: #667eea; margin-bottom: 15px;">📊 Bandes de Bollinger (20j)</h3>
+                <div class="bb-value">
+                    <span class="bb-label">Bande Haute:</span>
+                    <span>{{ prediction.bollinger_bands.upper|floatformat:2 }} MRU</span>
+                </div>
+                <div class="bb-value">
+                    <span class="bb-label">Moyenne:</span>
+                    <span><strong>{{ prediction.bollinger_bands.middle|floatformat:2 }} MRU</strong></span>
+                </div>
+                <div class="bb-value">
+                    <span class="bb-label">Bande Basse:</span>
+                    <span>{{ prediction.bollinger_bands.lower|floatformat:2 }} MRU</span>
+                </div>
+            </div>
+
+            <div class="chart-container">
+                <canvas id="predictionChart"></canvas>
+            </div>
+
+            {% if prediction.predictions %}
+            <h3 style="margin-top: 30px; margin-bottom: 20px;">📈 Prédictions pour les {{ days_ahead }} prochains jours:</h3>
+            
+            <!-- Comparaison des méthodes -->
+            <div class="methods-comparison">
+                <h4 style="margin-bottom: 10px; color: #667eea;">🔬 Comparaison des Méthodes</h4>
+                <table style="width: 100%; font-size: 0.85em;">
+                    <thead>
+                        <tr style="border-bottom: 2px solid #667eea;">
+                            <th style="text-align: left;">Méthode</th>
+                            <th style="text-align: center;">Description</th>
+                            <th style="text-align: right;">J+1</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td class="method-name">Régression Linéaire</td>
+                            <td>Tendance globale historique</td>
+                            <td style="text-align: right;">{{ prediction.predictions.0.method_lr|floatformat:2 }} MRU</td>
+                        </tr>
+                        <tr>
+                            <td class="method-name">Lissage Exponentiel</td>
+                            <td>Poids sur données récentes</td>
+                            <td style="text-align: right;">{{ prediction.predictions.0.method_exp|floatformat:2 }} MRU</td>
+                        </tr>
+                        <tr style="border-bottom: 2px solid #667eea;">
+                            <td class="method-name">Momentum</td>
+                            <td>Accélération récente</td>
+                            <td style="text-align: right;">{{ prediction.predictions.0.method_mom|floatformat:2 }} MRU</td>
+                        </tr>
+                        <tr style="background: #f5f5f5;">
+                            <td class="method-name" style="font-weight: bold;">🎯 Prédiction Finale</td>
+                            <td style="font-weight: bold;">Moyenne pondérée</td>
+                            <td style="text-align: right; font-weight: bold; color: #667eea;">{{ prediction.predictions.0.value|floatformat:2 }} MRU</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <table class="predictions-table">
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Prix prédit (MRU)</th>
+                        <th style="font-size: 0.9em;">Variation</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for pred in prediction.predictions %}
+                    <tr>
+                        <td>{{ pred.date|date:"d/m/Y" }}</td>
+                        <td><strong>{{ pred.value|floatformat:2 }}</strong></td>
+                        <td style="font-size: 0.9em; color: {% if pred.value >= prediction.current_price %}#388e3c{% else %}#d32f2f{% endif %};">
+                            {% if pred.value >= prediction.current_price %}
+                                ↑ +{{ pred.value|add:0.00|add:"-"| add:prediction.current_price|floatformat:2 }} ({% widthratio pred.value|add:0.00 prediction.current_price 1 %}%)
+                            {% else %}
+                                ↓ -{{ prediction.current_price|add:0.00|add:"-"| add:pred.value|floatformat:2 }} ({% widthratio pred.value|add:0.00 prediction.current_price 1 %}%)
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% endif %}
+
+            <script>
+                const ctx = document.getElementById('predictionChart').getContext('2d');
+                const historicalLength = {{ prediction.historical_length|default:0 }};
+                const allChartPrices = {{ prediction.chart_prices|default:'[]'|safe }};
+                const allChartDates = {{ prediction.chart_dates|default:'[]'|safe }};
+                
+                const historicalData = allChartPrices.slice(0, historicalLength);
+                const predictionData = new Array(historicalLength).fill(null);
+                if (historicalLength > 0 && allChartPrices.length > historicalLength) {
+                    predictionData[historicalLength - 1] = allChartPrices[historicalLength - 1];
+                    for (let i = historicalLength; i < allChartPrices.length; i++) {
+                        predictionData[i] = allChartPrices[i];
+                    }
+                }
+                
+                const chart = new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: allChartDates,
+                        datasets: [
+                            {
+                                label: 'Historique (30 jours)',
+                                data: historicalData,
+                                borderColor: '#667eea',
+                                backgroundColor: 'rgba(102, 126, 234, 0.1)',
+                                borderWidth: 2,
+                                fill: true
+                            },
+                            {
+                                label: 'Prédictions',
+                                data: predictionData,
+                                borderColor: '#ff9800',
+                                backgroundColor: 'rgba(255, 152, 0, 0.1)',
+                                borderWidth: 2,
+                                fill: true,
+                                borderDash: [5, 5]
+                            }
+                        ]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                display: true,
+                                position: 'top'
+                            }
+                        },
+                        scales: {
+                            y: {
+                                beginAtZero: false
+                            }
+                        }
+                    }
+                });
+            </script>
+        </div>
+        {% elif prediction and prediction.error %}
+        <div class="error">
+            <strong>⚠️ Erreur:</strong> {{ prediction.error }}
+        </div>
+        {% endif %}
+    </div>
+
+    <script>
+        function updatePrediction() {
+            const asset = document.getElementById('asset').value;
+            const days = document.getElementById('days').value;
+            
+            if (asset) {
+                window.location.href = `?asset=${asset}&days=${days}`;
+            }
+        }
+    </script>
+</body>
+</html>

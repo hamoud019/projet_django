@@ -1,0 +1,271 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Comparaison - Suivi des Actifs</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background-color: white;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            padding: 30px;
+        }
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 2px solid #667eea;
+        }
+        h1 {
+            color: #333;
+            font-size: 2em;
+        }
+        .back-link {
+            color: #667eea;
+            text-decoration: none;
+            font-weight: 600;
+        }
+        .filters {
+            background-color: #f5f5f5;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 30px;
+        }
+        .filters a {
+            display: inline-block;
+            margin-right: 10px;
+            padding: 10px 20px;
+            background-color: white;
+            border: 2px solid #667eea;
+            color: #667eea;
+            text-decoration: none;
+            border-radius: 5px;
+            font-weight: 600;
+            transition: all 0.2s;
+        }
+        .filters a:hover {
+            background-color: #667eea;
+            color: white;
+        }
+        .section {
+            margin-bottom: 40px;
+        }
+        .section h2 {
+            color: #667eea;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #667eea;
+        }
+        .comparison-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        .comparison-card {
+            background-color: #f5f5f5;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .comparison-card h3 {
+            color: #333;
+            margin-bottom: 15px;
+        }
+        .card-info {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+        .info-item {
+            background-color: white;
+            padding: 10px;
+            border-radius: 5px;
+            text-align: center;
+        }
+        .info-label {
+            color: #666;
+            font-size: 0.85em;
+            display: block;
+            margin-bottom: 5px;
+        }
+        .info-value {
+            color: #333;
+            font-weight: bold;
+            display: block;
+        }
+        .chart-small {
+            position: relative;
+            height: 200px;
+        }
+        .no-data {
+            text-align: center;
+            color: #999;
+            padding: 40px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>📊 Comparaison des Actifs</h1>
+            <a href="/" class="back-link">← Retour à l'accueil</a>
+        </header>
+
+        <div class="filters">
+            <a href="?type=all" {% if category_type == 'all' %}style="background-color: #667eea; color: white;"{% endif %}>
+                📌 Tous les actifs
+            </a>
+            <a href="?type=devises" {% if category_type == 'devises' %}style="background-color: #667eea; color: white;"{% endif %}>
+                💱 Devises
+            </a>
+            <a href="?type=metaux" {% if category_type == 'metaux' %}style="background-color: #667eea; color: white;"{% endif %}>
+                ⛏️ Matières premières
+            </a>
+        </div>
+
+        {% if devises %}
+        <div class="section">
+            <h2>💱 Devises</h2>
+            <div class="comparison-grid">
+                {% for code, data in devises.items %}
+                <div class="comparison-card">
+                    <h3>{{ data.asset.code }} - {{ data.asset.label }}</h3>
+                    <div class="card-info">
+                        <div class="info-item">
+                            <span class="info-label">Prix actuel</span>
+                            <span class="info-value">{{ data.current_price|floatformat:2 }} MRU</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="info-label">Moyenne</span>
+                            <span class="info-value">{{ data.avg|floatformat:2 }} MRU</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="info-label">Min</span>
+                            <span class="info-value">{{ data.min|floatformat:2 }} MRU</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="info-label">Max</span>
+                            <span class="info-value">{{ data.max|floatformat:2 }} MRU</span>
+                        </div>
+                    </div>
+                    <div class="chart-small">
+                        <canvas id="chart-{{ code }}"></canvas>
+                    </div>
+                    <a href="/asset/{{ code }}/" style="display: inline-block; margin-top: 15px; color: #667eea; text-decoration: none; font-weight: 600;">
+                        Voir détails →
+                    </a>
+                </div>
+                <script>
+                    const ctx{{ code }} = document.getElementById('chart-{{ code }}').getContext('2d');
+                    new Chart(ctx{{ code }}, {
+                        type: 'line',
+                        data: {
+                            labels: {{ data.chart_dates|safe }},
+                            datasets: [{
+                                data: {{ data.chart_prices|safe }},
+                                borderColor: '#667eea',
+                                backgroundColor: 'rgba(102, 126, 234, 0.1)',
+                                borderWidth: 2,
+                                fill: true,
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: { legend: { display: false } },
+                            scales: { x: { display: false }, y: { display: false } }
+                        }
+                    });
+                </script>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+
+        {% if metaux %}
+        <div class="section">
+            <h2>⛏️ Matières Premières</h2>
+            <div class="comparison-grid">
+                {% for code, data in metaux.items %}
+                <div class="comparison-card">
+                    <h3>{{ data.asset.code }} - {{ data.asset.label }}</h3>
+                    <div class="card-info">
+                        <div class="info-item">
+                            <span class="info-label">Prix actuel</span>
+                            <span class="info-value">{{ data.current_price|floatformat:2 }} MRU</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="info-label">Moyenne</span>
+                            <span class="info-value">{{ data.avg|floatformat:2 }} MRU</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="info-label">Min</span>
+                            <span class="info-value">{{ data.min|floatformat:2 }} MRU</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="info-label">Max</span>
+                            <span class="info-value">{{ data.max|floatformat:2 }} MRU</span>
+                        </div>
+                    </div>
+                    <div class="chart-small">
+                        <canvas id="chart-{{ code }}"></canvas>
+                    </div>
+                    <a href="/asset/{{ code }}/" style="display: inline-block; margin-top: 15px; color: #667eea; text-decoration: none; font-weight: 600;">
+                        Voir détails →
+                    </a>
+                </div>
+                <script>
+                    const ctx{{ code }} = document.getElementById('chart-{{ code }}').getContext('2d');
+                    new Chart(ctx{{ code }}, {
+                        type: 'line',
+                        data: {
+                            labels: {{ data.chart_dates|safe }},
+                            datasets: [{
+                                data: {{ data.chart_prices|safe }},
+                                borderColor: '#ff9800',
+                                backgroundColor: 'rgba(255, 152, 0, 0.1)',
+                                borderWidth: 2,
+                                fill: true,
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: { legend: { display: false } },
+                            scales: { x: { display: false }, y: { display: false } }
+                        }
+                    });
+                </script>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+
+        {% if not comparison %}
+        <div class="no-data">
+            <p>Aucune donnée disponible</p>
+        </div>
+        {% endif %}
+    </div>
+</body>
+</html>
