@@ -1,137 +1,106 @@
 # Projet Suivi des Actifs (MRU)
 
-Application Django pour suivre les prix des actifs (Crypto, Métaux, Devises) en Mauritanie (MRU).
+Application Django pour suivre des actifs financiers en MRU (devises, metaux, crypto).
+Les prix sont stockes en PostgreSQL, avec une synchronisation optionnelle vers MongoDB.
+Un scraper quotidien met a jour les prix depuis l API de la BCM (devises) et des sources simulees (metaux, crypto).
+Des vues de comparaison et de prediction sont incluses.
 
-## 🚀 Installation et Démarrage
+## Fonctionnalites
 
-### Avec Docker Compose
+- Tableau de bord des derniers prix
+- Fiche actif avec historique et graphiques
+- Comparaison par categorie (devises, metaux, crypto)
+- Prediction simple a partir de l historique
+- Administration Django pour gerer les actifs
+- Scraper quotidien + sync MongoDB optionnelle
+
+## Sources de donnees
+
+- Devises (USD, EUR, CNY): API Banque Centrale de Mauritanie (BCM)
+- Metaux (GOLD, IRON, COPPER): simulation
+- Crypto (BTC): simulation
+- Historique (optionnel): Yahoo Finance pour BTC, GOLD, COPPER, IRON
+
+## Installation rapide (Docker)
 
 ```bash
-# Démarrer les conteneurs
+# Demarrer la stack (PostgreSQL, MongoDB, Django, scraper)
 docker-compose up -d
 
-# Appliquer les migrations
-docker-compose exec web python manage.py migrate
-
-# Initialiser les données d'exemple
+# Initialiser des donnees de demo (2 ans)
 docker-compose exec web python manage.py init_data
+
+# Creer un compte admin
+docker-compose exec web python manage.py createsuperuser
 ```
 
-### Localement
+L application est disponible sur:
+- http://localhost:8000
+- http://localhost:8000/admin
+
+Le service `scraper` execute `python manage.py scrape_prices --sync` toutes les 24h.
+
+## Installation locale
 
 ```bash
-# Créer l'environnement virtuel
 python -m venv venv
-source venv/bin/activate  # ou venv\Scripts\activate sur Windows
+venv\Scripts\activate  # Windows
+# ou: source venv/bin/activate
 
-# Installer les dépendances
 pip install -r requirements.txt
-
-# Appliquer les migrations
 python manage.py migrate
-
-# Initialiser les données
 python manage.py init_data
-
-# Démarrer le serveur
 python manage.py runserver
 ```
 
-## 📊 Données Disponibles
+## Commandes utiles
 
-Le script `init_data` ajoute 3 actifs de démonstration :
-
-1. **Bitcoin (BTC)** - Catégorie: Crypto
-   - Prix: 44 000 - 48 000 MRU
-   
-2. **Gold (XAU)** - Catégorie: Métal
-   - Prix: 2 000 - 2 200 MRU
-   
-3. **Dollar US (USD)** - Catégorie: Devises
-   - Prix: 600 - 620 MRU
-
-Chaque actif a 7 jours de prix historiques.
-
-## 🌐 Accès à l'Application
-
-- **URL**: http://localhost:8000
-- **Admin**: http://localhost:8000/admin
-  - Utilisateur: admin
-  - Password: (à créer avec `python manage.py createsuperuser`)
-
-## 📋 Routes Disponibles
-
-- `/` - Accueil (derniers prix)
-- `/asset/<code>/` - Détail d'un actif
-- `/comparison/` - Comparaison des actifs
-- `/prediction/` - Prédictions de prix
-- `/admin/` - Interface d'administration
-
-## 🔧 Ajouter de Nouveaux Actifs
-
-Via l'interface admin: http://localhost:8000/admin/core/asset/
-
-Ou éditer le script `/core/management/commands/init_data.py` et relancer:
 ```bash
+# Donnees de demo (2 ans)
 python manage.py init_data
+
+# Scraper quotidien (devises BCM + metaux/crypto simules)
+python manage.py scrape_prices
+python manage.py scrape_prices --sync
+
+# Historique complet des devises depuis BCM
+python manage.py scrape_historical_fx --days 730
+
+# Historique Yahoo Finance (BTC, GOLD, COPPER, IRON)
+python manage.py scrape_historical_yahoo --days 730
+
+# Synchronisation PostgreSQL -> MongoDB
+python manage.py sync_prices_to_mongo --days 7 --verify
 ```
 
-## 📝 Structure du Projet
+## Routes
+
+- `/` : accueil (dernier prix par actif)
+- `/asset/<code>/` : detail d un actif
+- `/comparison/` : comparaison des actifs
+- `/prediction/` : predictions
+- `/admin/` : administration
+
+## Configuration
+
+Variables dans `.env`:
+- `DJANGO_SECRET_KEY`
+- `DJANGO_DEBUG`
+- `POSTGRES_DB`
+- `POSTGRES_USER`
+- `POSTGRES_PASSWORD`
+- `POSTGRES_HOST`
+- `POSTGRES_PORT`
+
+MongoDB (optionnel):
+- `MONGO_URL` (ex: `mongodb://user:pass@host:27017`)
+
+## Structure du projet
 
 ```
-├── project/              # Configuration Django
-│   ├── settings.py      # Paramètres Django
-│   ├── urls.py          # Routes principales
-│   └── wsgi.py
-├── core/                # Application principale
-│   ├── models.py        # Modèles (Asset, Price)
-│   ├── views.py         # Vues
-│   ├── urls.py          # Routes core
-│   ├── admin.py         # Panneau admin
-│   ├── services/        # Logique métier
-│   ├── api/             # Routes API (optionnel)
-│   ├── templates/       # Templates HTML
-│   └── management/commands/
-│       └── init_data.py # Script d'initialisation
-├── manage.py            # Gestionnaire Django
-├── requirements.txt     # Dépendances
-└── docker-compose.yml   # Configuration Docker
-```
-
-## ⚙️ Configuration
-
-Les variables d'environnement sont définies dans `.env`:
-- `DJANGO_SECRET_KEY` - Clé secrète Django
-- `DJANGO_DEBUG` - Mode debug (1=True, 0=False)
-- `POSTGRES_DB` - Nom de la base de données
-- `POSTGRES_USER` - Utilisateur PostgreSQL
-- `POSTGRES_PASSWORD` - Mot de passe PostgreSQL
-- `POSTGRES_HOST` - Hôte PostgreSQL
-- `POSTGRES_PORT` - Port PostgreSQL
-
-## 🐛 Dépannage
-
-### Erreur: "No module named 'rest_framework'"
-Les packages optionnels (rest_framework, corsheaders) ne sont pas dans requirements.txt. 
-Pour les ajouter:
-1. Ajouter à requirements.txt:
-   ```
-   djangorestframework>=3.14
-   django-cors-headers>=4.0
-   ```
-2. Reinstaller: `pip install -r requirements.txt`
-3. Ajouter à INSTALLED_APPS dans settings.py
-4. Décommenter les routes API dans urls.py
-
-### Erreur: "Connection refused"
-PostgreSQL n'est pas accessible. Vérifier:
-1. Le service PostgreSQL est démarré
-2. Les variables d'environnement (.env) sont correctes
-3. Le conteneur `postgres_mru` est en cours d'exécution
-
-## 📞 Support
-
-Pour toute question ou problème, consultez les logs:
-```bash
-docker-compose logs -f web
+project/                # Configuration Django
+core/                   # App principale (models, views, templates)
+scraper/                # Pipeline de scraping
+sync/                   # Synchronisation MongoDB
+scripts/                # Scripts utilitaires
 ```

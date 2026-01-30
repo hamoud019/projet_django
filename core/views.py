@@ -156,11 +156,16 @@ def comparison_view(request):
     devises = {k: v for k, v in comparison.items() if v['asset'].category == 'fx'}
     metaux = {k: v for k, v in comparison.items() if v['asset'].category == 'metal'}
 
+    # Pour le graphique des devises : récupérer les dates du premier actif devise
+    currencies_chart_dates = []
+    if devises:
+        currencies_chart_dates = next(iter(devises.values()))['chart_dates']
     return render(request, "core/comparison.html", {
         "comparison": comparison,
         "devises": devises,
         "metaux": metaux,
         "category_type": category_type,
+        "currencies_chart_dates": currencies_chart_dates,
     })
 
 

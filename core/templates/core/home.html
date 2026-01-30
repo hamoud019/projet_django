@@ -1,333 +1,216 @@
+
+    <header class="topbar">
+        <div class="brand">
+            <div class="brand-title">MRU Trading Desk</div>
+            <div class="brand-sub">Plateforme moderne de trading FX, métaux & crypto</div>
+        </div>
+        <nav class="nav">
+            <a class="btn btn-ghost active" href="/">Accueil</a>
+            <a class="btn btn-ghost" href="/comparison/">Comparaison</a>
+            <a class="btn btn-ghost" href="/prediction/">Prediction</a>
+            <a class="btn btn-ghost" href="/admin/">Admin</a>
+        </nav>
+    </header>
+
+    {% if devises %}
+    <section class="section card">
+        <div class="section-title">
+            <h2>Devises</h2>
+            <span class="subtle">Dernier prix disponible</span>
+        </div>
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Code</th>
+                    <th>Actif</th>
+                    <th>Prix (MRU)</th>
+                    <th>Date</th>
+                    <th>Variation</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for row in devises %}
+                <tr>
+                    <td><span class="tag tag-fx">{{ row.asset.code }}</span></td>
+                    <td>{{ row.asset.label }}</td>
+                    <td class="price">{% if row.price %}{{ row.price.price_mru|floatformat:2 }}{% else %}-{% endif %}</td>
+                    <td>{% if row.price %}{{ row.price.date }}{% else %}-{% endif %}</td>
+                    <td>
+                        {% if row.variation %}
+                            <span class="variation {% if row.variation >= 0 %}positive{% else %}negative{% endif %}">{% if row.variation >= 0 %}+{% endif %}{{ row.variation|floatformat:2 }}%</span>
+                        {% else %}-{% endif %}
+                    </td>
+                    <td><a class="link" href="/asset/{{ row.asset.code }}/">Voir details</a></td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </section>
+    {% endif %}
+
+    {% if metaux %}
+    <section class="section card">
+        <div class="section-title">
+            <h2>Matières premières</h2>
+            <span class="subtle">Dernier prix disponible</span>
+        </div>
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Code</th>
+                    <th>Actif</th>
+                    <th>Prix (MRU)</th>
+                    <th>Date</th>
+                    <th>Variation</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for row in metaux %}
+                <tr>
+                    <td><span class="tag tag-metal">{{ row.asset.code }}</span></td>
+                    <td>{{ row.asset.label }}</td>
+                    <td class="price">{% if row.price %}{{ row.price.price_mru|floatformat:2 }}{% else %}-{% endif %}</td>
+                    <td>{% if row.price %}{{ row.price.date }}{% else %}-{% endif %}</td>
+                    <td>
+                        {% if row.variation %}
+                            <span class="variation {% if row.variation >= 0 %}positive{% else %}negative{% endif %}">{% if row.variation >= 0 %}+{% endif %}{{ row.variation|floatformat:2 }}%</span>
+                        {% else %}-{% endif %}
+                    </td>
+                    <td><a class="link" href="/asset/{{ row.asset.code }}/">Voir details</a></td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </section>
+    {% endif %}
+
+    {% if crypto %}
+    <section class="section card">
+        <div class="section-title">
+            <h2>Crypto</h2>
+            <span class="subtle">Dernier prix disponible</span>
+        </div>
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Code</th>
+                    <th>Actif</th>
+                    <th>Prix (MRU)</th>
+                    <th>Date</th>
+                    <th>Variation</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for row in crypto %}
+                <tr>
+                    <td><span class="tag tag-crypto">{{ row.asset.code }}</span></td>
+                    <td>{{ row.asset.label }}</td>
+                    <td class="price">{% if row.price %}{{ row.price.price_mru|floatformat:2 }}{% else %}-{% endif %}</td>
+                    <td>{% if row.price %}{{ row.price.date }}{% else %}-{% endif %}</td>
+                    <td>
+                        {% if row.variation %}
+                            <span class="variation {% if row.variation >= 0 %}positive{% else %}negative{% endif %}">{% if row.variation >= 0 %}+{% endif %}{{ row.variation|floatformat:2 }}%</span>
+                        {% else %}-{% endif %}
+                    </td>
+                    <td><a class="link" href="/asset/{{ row.asset.code }}/">Voir details</a></td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </section>
+    {% endif %}
 {% load static %}
 <!DOCTYPE html>
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Suivi des Actifs - MRU</title>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
-            padding: 20px;
-        }
-        .container {
-            max-width: 1400px;
-            margin: 0 auto;
-        }
-        header {
-            background-color: rgba(255, 255, 255, 0.95);
-            padding: 30px;
-            border-radius: 10px;
-            margin-bottom: 30px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-        }
-        header h1 {
-            color: #333;
-            margin-bottom: 10px;
-            font-size: 2.5em;
-        }
-        header p {
-            color: #666;
-            font-size: 1.1em;
-        }
-        nav {
-            background-color: rgba(255, 255, 255, 0.95);
-            padding: 15px 30px;
-            border-radius: 10px;
-            margin-bottom: 30px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-        }
-        nav a {
-            display: inline-block;
-            margin-right: 20px;
-            padding: 10px 20px;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            text-decoration: none;
-            border-radius: 5px;
-            transition: transform 0.2s;
-        }
-        nav a:hover {
-            transform: translateY(-2px);
-        }
-        .section {
-            background-color: rgba(255, 255, 255, 0.95);
-            padding: 30px;
-            border-radius: 10px;
-            margin-bottom: 30px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-        }
-        .section h2 {
-            color: #667eea;
-            margin-bottom: 20px;
-            padding-bottom: 10px;
-            border-bottom: 2px solid #667eea;
-        }
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 20px;
-        }
-        table thead {
-            background-color: #667eea;
-            color: white;
-        }
-        table th {
-            padding: 15px;
-            text-align: left;
-            font-weight: 600;
-        }
-        table td {
-            padding: 15px;
-            border-bottom: 1px solid #eee;
-        }
-        table tbody tr {
-            transition: background-color 0.2s;
-        }
-        table tbody tr:hover {
-            background-color: #f5f5f5;
-        }
-        .price {
-            font-weight: bold;
-            color: #333;
-        }
-        .variation.positive {
-            color: #28a745;
-            font-weight: bold;
-        }
-        .variation.negative {
-            color: #dc3545;
-            font-weight: bold;
-        }
-        .category-badge {
-            display: inline-block;
-            padding: 5px 10px;
-            border-radius: 20px;
-            font-size: 0.85em;
-            font-weight: 600;
-        }
-        .category-fx {
-            background-color: #cfe2ff;
-            color: #084298;
-        }
-        .category-metal {
-            background-color: #fff3cd;
-            color: #664d03;
-        }
-        .category-crypto {
-            background-color: #d1e7dd;
-            color: #0f5132;
-        }
-        .asset-link {
-            color: #667eea;
-            text-decoration: none;
-            font-weight: 600;
-        }
-        .asset-link:hover {
-            text-decoration: underline;
-        }
-        .no-data {
-            text-align: center;
-            color: #999;
-            padding: 40px;
-        }
-    </style>
+    <title>MRU Trading Desk</title>
+    <link rel="stylesheet" href="{% static 'core/css/trading.css' %}">
 </head>
 <body>
-    <div class="container">
-        <header>
-            <h1>📊 Suivi des Actifs en MRU</h1>
-            <p>Suivi des prix en temps réel : Devises, Crypto-monnaies et Matières premières</p>
+    <div class="shell">
+        <header class="topbar">
+            <div class="brand">
+                <div class="brand-title">MRU Trading Desk</div>
+                <div class="brand-sub">Plateforme moderne de trading FX, métaux & crypto</div>
+            </div>
+            <nav class="nav">
+                <a class="btn btn-ghost active" href="/">Accueil</a>
+                <a class="btn btn-ghost" href="/comparison/">Comparaison</a>
+                <a class="btn btn-ghost" href="/prediction/">Prediction</a>
+                <a class="btn btn-ghost" href="/admin/">Admin</a>
+            </nav>
         </header>
 
-        <nav>
-            <a href="/">🏠 Accueil</a>
-            <a href="/comparison/">📈 Comparaison</a>
-            <a href="/prediction/">🔮 Prédictions</a>
-            <a href="/admin/">⚙️ Administration</a>
-        </nav>
+
+
 
         {% if devises %}
-        <div class="section">
-            <h2>💱 Devises</h2>
-            {% if devises %}
-            <table>
-                <thead>
-                    <tr>
-                        <th>Code</th>
-                        <th>Actif</th>
-                        <th>Prix (MRU)</th>
-                        <th>Date</th>
-                        <th>Variation</th>
-                        <th>Action</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for row in devises %}
-                    <tr>
-                        <td>
-                            <span class="category-badge category-fx">{{ row.asset.code }}</span>
+        <section class="section card">
+
+            </div>
+        </section>
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        // Exemple de données fictives, à remplacer par vos données dynamiques
+        const ctx = document.getElementById('globalChart').getContext('2d');
+        new Chart(ctx, {
+            type: 'line',
+
                         </td>
-                        <td>{{ row.asset.label }}</td>
-                        <td class="price">
-                            {% if row.price %}
-                                {{ row.price.price_mru|floatformat:2 }}
-                            {% else %}
-                                -
-                            {% endif %}
-                        </td>
-                        <td>
-                            {% if row.price %}
-                                {{ row.price.date }}
-                            {% else %}
-                                -
-                            {% endif %}
-                        </td>
+                        <td>{% if row.price %}{{ row.price.date }}{% else %}-{% endif %}</td>
                         <td>
                             {% if row.variation %}
                                 <span class="variation {% if row.variation >= 0 %}positive{% else %}negative{% endif %}">
                                     {% if row.variation >= 0 %}+{% endif %}{{ row.variation|floatformat:2 }}%
                                 </span>
-                            {% else %}
-                                -
-                            {% endif %}
+                            {% else %}-{% endif %}
                         </td>
-                        <td>
-                            <a href="/asset/{{ row.asset.code }}/" class="asset-link">Voir détails →</a>
-                        </td>
+                        <td><a class="link" href="/asset/{{ row.asset.code }}/">Voir details</a></td>
                     </tr>
-                    {% endfor %}
+
                 </tbody>
             </table>
-            {% endif %}
-        </div>
-        {% endif %}
 
-        {% if metaux %}
-        <div class="section">
-            <h2>⛏️ Matières Premières</h2>
-            {% if metaux %}
-            <table>
-                <thead>
-                    <tr>
-                        <th>Code</th>
-                        <th>Actif</th>
-                        <th>Prix (MRU)</th>
-                        <th>Date</th>
-                        <th>Variation</th>
-                        <th>Action</th>
-                    </tr>
-                </thead>
-                <tbody>
+
+
                     {% for row in metaux %}
                     <tr>
-                        <td>
-                            <span class="category-badge category-metal">{{ row.asset.code }}</span>
-                        </td>
+                        <td><span class="tag tag-metal">{{ row.asset.code }}</span></td>
                         <td>{{ row.asset.label }}</td>
                         <td class="price">
-                            {% if row.price %}
-                                {{ row.price.price_mru|floatformat:2 }}
-                            {% else %}
-                                -
-                            {% endif %}
+                            {% if row.price %}{{ row.price.price_mru|floatformat:2 }}{% else %}-{% endif %}
                         </td>
-                        <td>
-                            {% if row.price %}
-                                {{ row.price.date }}
-                            {% else %}
-                                -
-                            {% endif %}
-                        </td>
+                        <td>{% if row.price %}{{ row.price.date }}{% else %}-{% endif %}</td>
                         <td>
                             {% if row.variation %}
                                 <span class="variation {% if row.variation >= 0 %}positive{% else %}negative{% endif %}">
                                     {% if row.variation >= 0 %}+{% endif %}{{ row.variation|floatformat:2 }}%
                                 </span>
-                            {% else %}
-                                -
-                            {% endif %}
+                            {% else %}-{% endif %}
                         </td>
-                        <td>
-                            <a href="/asset/{{ row.asset.code }}/" class="asset-link">Voir détails →</a>
-                        </td>
+                        <td><a class="link" href="/asset/{{ row.asset.code }}/">Voir details</a></td>
                     </tr>
                     {% endfor %}
                 </tbody>
             </table>
-            {% endif %}
-        </div>
+        </section>
         {% endif %}
 
         {% if crypto %}
-        <div class="section">
-            <h2>₿ Crypto-monnaies</h2>
-            {% if crypto %}
-            <table>
-                <thead>
-                    <tr>
-                        <th>Code</th>
-                        <th>Actif</th>
-                        <th>Prix (MRU)</th>
-                        <th>Date</th>
-                        <th>Variation</th>
-                        <th>Action</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for row in crypto %}
-                    <tr>
-                        <td>
-                            <span class="category-badge category-crypto">{{ row.asset.code }}</span>
-                        </td>
-                        <td>{{ row.asset.label }}</td>
-                        <td class="price">
-                            {% if row.price %}
-                                {{ row.price.price_mru|floatformat:2 }}
-                            {% else %}
-                                -
-                            {% endif %}
-                        </td>
-                        <td>
-                            {% if row.price %}
-                                {{ row.price.date }}
-                            {% else %}
-                                -
-                            {% endif %}
-                        </td>
-                        <td>
-                            {% if row.variation %}
-                                <span class="variation {% if row.variation >= 0 %}positive{% else %}negative{% endif %}">
-                                    {% if row.variation >= 0 %}+{% endif %}{{ row.variation|floatformat:2 }}%
-                                </span>
-                            {% else %}
-                                -
-                            {% endif %}
-                        </td>
-                        <td>
-                            <a href="/asset/{{ row.asset.code }}/" class="asset-link">Voir détails →</a>
-                        </td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-            {% endif %}
-        </div>
-        {% endif %}
+        <section class="section card">
+
 
         {% if not data %}
-        <div class="section">
-            <div class="no-data">
-                <p>Aucune donnée disponible. Exécutez: <code>python manage.py init_data</code></p>
-            </div>        </div>
+        <section class="section card">
+            <div class="notice">Aucune donnee disponible. Lancez: python manage.py init_data</div>
+        </section>
+        {% endif %}
         {% endif %}
     </div>
 </body>
