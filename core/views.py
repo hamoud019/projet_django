@@ -1,5 +1,6 @@
 from django.shortcuts import render, get_object_or_404
 from django.http import JsonResponse
+from django.db import transaction
 from .models import Asset, Price
 from .services.pricing import get_latest_prices, get_price_history
 from .services.comparison import compare_assets, calculate_variation
@@ -97,13 +98,28 @@ def asset_detail(request, code):
     if asset.code in yahoo_assets:
         price_qs = price_qs.filter(source="yahoo")
 
+    # Forcer un prix "aujourd'hui" si absent (copie du dernier connu)
+    today_price = price_qs.filter(date=today).first()
+    if not today_price:
+        last = price_qs.order_by("-date").first()
+        if last:
+            try:
+                with transaction.atomic():
+                    Price.objects.update_or_create(
+                        asset=asset,
+                        date=today,
+                        defaults={"price_mru": last.price_mru, "source": last.source},
+                    )
+            except Exception:
+                pass
+            today_price = price_qs.filter(date=today).first()
+
     prices = price_qs.filter(date__gte=start_date).order_by('date')
 
     # Prix courant align? avec l'accueil
-    today_price = price_qs.filter(date=today).first()
     last = today_price or price_qs.order_by("-date").first()
     current_price = float(last.price_mru) if last else 0
-    display_date = today if (asset.code in yahoo_assets and not today_price and last) else (last.date if last else None)
+    display_date = today if (not today_price and last) else (last.date if last else None)
 
     # Variation 24h
     yesterday = today - timedelta(days=1)
