@@ -6,9 +6,7 @@ import time
 from datetime import datetime
 from decimal import Decimal
 
-from scraper.fetchers.crypto import CryptoFetcher
 from scraper.fetchers.fx import FXFetcher
-from scraper.fetchers.metals import MetalsFetcher
 from scraper.store import DataStore
 
 logger = logging.getLogger(__name__)

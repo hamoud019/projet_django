@@ -33,6 +33,7 @@
                 <div class="stat-card">
                     <span>Prix actuel</span>
                     <strong>{{ current_price|floatformat:2 }} MRU</strong>
+                    <div class="subtle">{% if display_date %}{{ display_date }}{% else %}-{% endif %}</div>
                 </div>
                 <div class="stat-card">
                     <span>Variation 24h</span>

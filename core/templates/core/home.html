@@ -35,7 +35,7 @@
                     <td><span class="tag tag-fx">{{ row.asset.code }}</span></td>
                     <td>{{ row.asset.label }}</td>
                     <td class="price">{% if row.price %}{{ row.price.price_mru|floatformat:2 }}{% else %}-{% endif %}</td>
-                    <td>{% if row.price %}{{ row.price.date }}{% else %}-{% endif %}</td>
+                    <td>{% if row.display_date %}{{ row.display_date }}{% else %}-{% endif %}</td>
                     <td>
                         {% if row.variation %}
                             <span class="variation {% if row.variation >= 0 %}positive{% else %}negative{% endif %}">{% if row.variation >= 0 %}+{% endif %}{{ row.variation|floatformat:2 }}%</span>
@@ -72,7 +72,7 @@
                     <td><span class="tag tag-metal">{{ row.asset.code }}</span></td>
                     <td>{{ row.asset.label }}</td>
                     <td class="price">{% if row.price %}{{ row.price.price_mru|floatformat:2 }}{% else %}-{% endif %}</td>
-                    <td>{% if row.price %}{{ row.price.date }}{% else %}-{% endif %}</td>
+                    <td>{% if row.display_date %}{{ row.display_date }}{% else %}-{% endif %}</td>
                     <td>
                         {% if row.variation %}
                             <span class="variation {% if row.variation >= 0 %}positive{% else %}negative{% endif %}">{% if row.variation >= 0 %}+{% endif %}{{ row.variation|floatformat:2 }}%</span>
@@ -109,7 +109,7 @@
                     <td><span class="tag tag-crypto">{{ row.asset.code }}</span></td>
                     <td>{{ row.asset.label }}</td>
                     <td class="price">{% if row.price %}{{ row.price.price_mru|floatformat:2 }}{% else %}-{% endif %}</td>
-                    <td>{% if row.price %}{{ row.price.date }}{% else %}-{% endif %}</td>
+                    <td>{% if row.display_date %}{{ row.display_date }}{% else %}-{% endif %}</td>
                     <td>
                         {% if row.variation %}
                             <span class="variation {% if row.variation >= 0 %}positive{% else %}negative{% endif %}">{% if row.variation >= 0 %}+{% endif %}{{ row.variation|floatformat:2 }}%</span>
@@ -163,7 +163,7 @@
             type: 'line',
 
                         </td>
-                        <td>{% if row.price %}{{ row.price.date }}{% else %}-{% endif %}</td>
+                        <td>{% if row.display_date %}{{ row.display_date }}{% else %}-{% endif %}</td>
                         <td>
                             {% if row.variation %}
                                 <span class="variation {% if row.variation >= 0 %}positive{% else %}negative{% endif %}">
@@ -186,7 +186,7 @@
                         <td class="price">
                             {% if row.price %}{{ row.price.price_mru|floatformat:2 }}{% else %}-{% endif %}
                         </td>
-                        <td>{% if row.price %}{{ row.price.date }}{% else %}-{% endif %}</td>
+                        <td>{% if row.display_date %}{{ row.display_date }}{% else %}-{% endif %}</td>
                         <td>
                             {% if row.variation %}
                                 <span class="variation {% if row.variation >= 0 %}positive{% else %}negative{% endif %}">

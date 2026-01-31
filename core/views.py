@@ -14,32 +14,35 @@ def home(request):
     assets = Asset.objects.all().order_by('category', 'code')
     data = []
     today = timezone.now().date()
+    yahoo_assets = {"BTC", "GOLD", "COPPER", "IRON"}
 
     for asset in assets:
+        price_qs = Price.objects.filter(asset=asset)
+        if asset.code in yahoo_assets:
+            price_qs = price_qs.filter(source="yahoo")
+
         # Chercher d'abord le prix d'aujourd'hui
-        today_price = Price.objects.filter(
-            asset=asset,
-            date=today
-        ).first()
+        today_price = price_qs.filter(date=today).first()
         
         # Si pas de prix aujourd'hui, prendre le dernier disponible
         if today_price:
             last = today_price
         else:
-            last = Price.objects.filter(asset=asset).order_by("-date").first()
+            last = price_qs.order_by("-date").first()
         
         # Chercher les prix précédents pour les variations
+        display_date = last.date if last else None
+        if asset.code in yahoo_assets and not today_price and last:
+            display_date = today
+
         if last:
             # Variation J-1 (hier)
             yesterday = today - timedelta(days=1)
-            prev_j1 = Price.objects.filter(
-                asset=asset,
-                date=yesterday
-            ).first()
+            prev_j1 = price_qs.filter(date=yesterday).first()
             
             # Si pas hier, chercher les 8 derniers prix après aujourd'hui
             if not prev_j1:
-                all_prices = Price.objects.filter(asset=asset).order_by("-date")[:10]
+                all_prices = price_qs.order_by("-date")[:10]
                 if len(all_prices) > 1:
                     prev_j1 = all_prices[1]
             
@@ -49,10 +52,7 @@ def home(request):
             
             # Variation J-7
             last_week = today - timedelta(days=7)
-            prev_j7 = Price.objects.filter(
-                asset=asset,
-                date__lte=last_week
-            ).order_by("-date").first()
+            prev_j7 = price_qs.filter(date__lte=last_week).order_by("-date").first()
             
             variation_j7 = None
             if prev_j7:
@@ -64,6 +64,7 @@ def home(request):
         data.append({
             "asset": asset,
             "price": last,
+            "display_date": display_date,
             "variation_j1": variation_j1,
             "variation_j7": variation_j7,
             "variation": variation_j1 or variation_j7,
@@ -83,17 +84,44 @@ def home(request):
 
 
 def asset_detail(request, code):
-    """Vue détail d'un actif avec filtres de dates"""
+    """Vue d?tail d'un actif avec filtres de dates"""
     asset = get_object_or_404(Asset, code=code)
-    
+    today = timezone.now().date()
+    yahoo_assets = {"BTC", "GOLD", "COPPER", "IRON"}
+
     # Filtres de dates
-    days = int(request.GET.get('days', 365))  # Par défaut 1 an
+    days = int(request.GET.get('days', 365))  # Par d?faut 1 an
     start_date = timezone.now().date() - timedelta(days=days)
-    
-    prices = Price.objects.filter(
-        asset=asset,
-        date__gte=start_date
-    ).order_by('date')
+
+    price_qs = Price.objects.filter(asset=asset)
+    if asset.code in yahoo_assets:
+        price_qs = price_qs.filter(source="yahoo")
+
+    prices = price_qs.filter(date__gte=start_date).order_by('date')
+
+    # Prix courant align? avec l'accueil
+    today_price = price_qs.filter(date=today).first()
+    last = today_price or price_qs.order_by("-date").first()
+    current_price = float(last.price_mru) if last else 0
+    display_date = today if (asset.code in yahoo_assets and not today_price and last) else (last.date if last else None)
+
+    # Variation 24h
+    yesterday = today - timedelta(days=1)
+    prev_j1 = price_qs.filter(date=yesterday).first()
+    if not prev_j1:
+        recent = price_qs.order_by("-date")[:2]
+        prev_j1 = recent[1] if len(recent) > 1 else None
+    price_change = calculate_variation(current_price, float(prev_j1.price_mru)) if prev_j1 else 0
+
+    # Min / max 7 jours
+    last_7d = price_qs.filter(date__gte=today - timedelta(days=7))
+    if last_7d.exists():
+        values_7d = [float(p.price_mru) for p in last_7d]
+        min_7d = min(values_7d)
+        max_7d = max(values_7d)
+    else:
+        min_7d = 0
+        max_7d = 0
 
     # Calculer min et max
     min_price = float('inf')
@@ -104,11 +132,11 @@ def asset_detail(request, code):
             min_price = price_val
         if price_val > max_price:
             max_price = price_val
-    
+
     if min_price == float('inf'):
         min_price = 0
 
-    # Préparer les données pour le graphique
+    # Pr?parer les donn?es pour le graphique
     chart_dates = [str(p.date) for p in prices]
     chart_prices = [float(p.price_mru) for p in prices]
 
@@ -116,6 +144,11 @@ def asset_detail(request, code):
         "asset": asset,
         "prices": prices,
         "days": days,
+        "current_price": current_price,
+        "price_change": price_change,
+        "min_7d": min_7d,
+        "max_7d": max_7d,
+        "display_date": display_date,
         "min_price": min_price,
         "max_price": max_price,
         "chart_dates": json.dumps(chart_dates),
